@@ -1,10 +1,12 @@
 import os
 import time
 import threading
+
 from flask import Flask, request
 import telebot
 from telebot import types
 from pymongo import MongoClient
+from bson import ObjectId
 
 # ==========================
 #   ENVIRONMENT VARIABLES
@@ -12,6 +14,7 @@ from pymongo import MongoClient
 TOKEN = os.getenv("BOT_TOKEN")
 CHANNEL_ID = int(os.getenv("CHANNEL_ID"))  # -100xxxx
 ADMIN_IDS = [int(x) for x in os.getenv("ADMIN_IDS").split(",")]  # 123,456
+ADMIN_CONTACT_ID = int(os.getenv("ADMIN_CONTACT_ID"))  # tugma uchun TG ID
 
 MONGO_URI = os.getenv("MONGO_URI")
 mongo_client = MongoClient(MONGO_URI)
@@ -19,7 +22,6 @@ db = mongo_client["ManhwaVipBot"]
 
 # Collections
 contents = db["contents"]
-links = db["links"]
 
 # ==========================
 #   BOT & FLASK
@@ -28,7 +30,7 @@ bot = telebot.TeleBot(TOKEN, parse_mode="HTML")
 app = Flask(__name__)
 
 # ==========================
-#   DELETE AFTER 24 HOURS
+#   DELETE HELPERS
 # ==========================
 def delete_after_24h(chat_id, message_id):
     time.sleep(86400)
@@ -39,6 +41,20 @@ def delete_after_24h(chat_id, message_id):
 
 def track_delete(chat_id, message_id):
     t = threading.Thread(target=delete_after_24h, args=(chat_id, message_id))
+    t.daemon = True
+    t.start()
+
+
+def delete_after_15min(chat_id, message_id):
+    time.sleep(900)
+    try:
+        bot.delete_message(chat_id, message_id)
+    except:
+        pass
+
+def track_delete_15min(chat_id, message_id):
+    t = threading.Thread(target=delete_after_15min, args=(chat_id, message_id))
+    t.daemon = True
     t.start()
 
 # ==========================
@@ -62,59 +78,10 @@ def is_subscribed(user_id):
         return False
 
 # ==========================
-#   START COMMAND
+#   ADMIN STATE
 # ==========================
-@bot.message_handler(commands=['start'])
-def start(message):
-    user_id = message.from_user.id
-    chat_id = message.chat.id
-
-    # Admin tugmasi
-    admin_btn = types.InlineKeyboardMarkup()
-    admin_btn.add(
-        types.InlineKeyboardButton("👤 Administrator", url=f"https://t.me/{ADMIN_IDS[0]}")
-    )
-
-    # Kanalga o'tish tugmasi
-    channel_btn = types.InlineKeyboardMarkup()
-    channel_btn.add(
-        types.InlineKeyboardButton("📢 Kanalga o'tish", url=f"https://t.me/c/{str(CHANNEL_ID)[4:]}")
-    )
-
-    if not is_subscribed(user_id):
-        msg = bot.send_message(
-            chat_id,
-            "❗ <b>Ushbu bot faqat bitta kanal uchun ishlaydi.</b>\n"
-            "Agar siz ham ushbu kanalga qo‘shilmoqchi bo‘lsangiz, adminga yozing.",
-            reply_markup=admin_btn
-        )
-        track_delete(chat_id, msg.message_id)
-        return
-
-    # Obunachi bo'lsa — keyingi qismda kontent berish logikasi bo'ladi
-    msg = bot.send_message(
-        chat_id,
-        "✔️ Siz kanal obunachisisiz.\nHavolani bosing va kontentni oling.",
-        reply_markup=channel_btn
-    )
-    track_delete(chat_id, msg.message_id)
-
-# ==========================
-#   FALLBACK HANDLER
-# ==========================
-@bot.message_handler(func=lambda m: True)
-def fallback(message):
-    chat_id = message.chat.id
-    msg = bot.send_message(chat_id, "❗ Bu botda faqat /start ishlaydi.")
-    track_delete(chat_id, message.message_id)
-    track_delete(chat_id, msg.message_id)
-
-# ==========================
-#   FLASK RUN
-# ==========================
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+# user_id: {"mode": "single"|"multi", "files": []}
+admin_state = {}
 
 # ==========================
 #   ADMIN PANEL
@@ -137,8 +104,9 @@ def admin_panel(message):
     msg = bot.send_message(chat_id, "🔐 <b>Admin panel</b>", reply_markup=markup)
     track_delete(chat_id, msg.message_id)
 
+
 # ==========================
-#   ADMIN: KONTENT YUKLASH
+#   ADMIN: KONTENT YUKLASH TURINI TANLASH
 # ==========================
 @bot.callback_query_handler(func=lambda call: call.data == "upload_content")
 def choose_upload_type(call):
@@ -157,15 +125,17 @@ def choose_upload_type(call):
     msg = bot.send_message(chat_id, "📂 Qaysi tarzda yuklaysiz?", reply_markup=markup)
     track_delete(chat_id, msg.message_id)
 
+
 # ==========================
 #   1-1 HAVOLA REJIMI
 # ==========================
-admin_state = {}  # user_id: {"mode": "single"|"multi", "files": []}
-
 @bot.callback_query_handler(func=lambda call: call.data == "upload_single")
 def upload_single(call):
     user_id = call.from_user.id
     chat_id = call.message.chat.id
+
+    if user_id not in ADMIN_IDS:
+        return
 
     admin_state[user_id] = {"mode": "single", "files": []}
 
@@ -177,6 +147,7 @@ def upload_single(call):
     )
     track_delete(chat_id, msg.message_id)
 
+
 # ==========================
 #   CHEKSIZ HAVOLA REJIMI
 # ==========================
@@ -184,6 +155,9 @@ def upload_single(call):
 def upload_multi(call):
     user_id = call.from_user.id
     chat_id = call.message.chat.id
+
+    if user_id not in ADMIN_IDS:
+        return
 
     admin_state[user_id] = {"mode": "multi", "files": []}
 
@@ -194,6 +168,7 @@ def upload_multi(call):
         "Tugash uchun /stop yuboring."
     )
     track_delete(chat_id, msg.message_id)
+
 
 # ==========================
 #   ADMIN KONTENT QABUL QILISH
@@ -213,8 +188,8 @@ def admin_upload(message):
         track_delete(chat_id, msg.message_id)
         return
 
-    file_id = None
     file_type = message.content_type
+    file_id = None
 
     if file_type == "photo":
         file_id = message.photo[-1].file_id
@@ -231,6 +206,11 @@ def admin_upload(message):
     elif file_type == "sticker":
         file_id = message.sticker.file_id
 
+    if not file_id:
+        msg = bot.send_message(chat_id, "❗ Noma’lum kontent turi.")
+        track_delete(chat_id, msg.message_id)
+        return
+
     admin_state[user_id]["files"].append({
         "type": file_type,
         "file_id": file_id
@@ -238,6 +218,7 @@ def admin_upload(message):
 
     msg = bot.send_message(chat_id, "📌 Kontent qabul qilindi.")
     track_delete(chat_id, msg.message_id)
+
 
 # ==========================
 #   /stop — YUKLASHNI YAKUNLASH
@@ -265,7 +246,6 @@ def stop_upload(message):
         return
 
     if mode == "single":
-        # Har bir kontent uchun alohida havola
         links_created = []
         for f in files:
             doc = contents.insert_one({
@@ -281,9 +261,7 @@ def stop_upload(message):
             "\n".join([f"https://t.me/{bot.get_me().username}?start={code}" for code in links_created])
         )
         track_delete(chat_id, msg.message_id)
-
     else:
-        # Cheksiz — bitta havola
         doc = contents.insert_one({
             "files": files,
             "created_at": time.time()
@@ -300,40 +278,33 @@ def stop_upload(message):
     del admin_state[user_id]
 
 # ==========================
-#   START-LINK ORQALI KONTENT BERISH
+#   /start — ODDIY VA HAVOLA BILAN
 # ==========================
-def delete_after_15min(chat_id, message_id):
-    time.sleep(900)  # 15 daqiqa
-    try:
-        bot.delete_message(chat_id, message_id)
-    except:
-        pass
-
-def track_delete_15min(chat_id, message_id):
-    t = threading.Thread(target=delete_after_15min, args=(chat_id, message_id))
-    t.start()
-
-
 @bot.message_handler(commands=['start'])
 def start(message):
     user_id = message.from_user.id
     chat_id = message.chat.id
-
     args = message.text.split()
 
-    # Admin tugmasi
+    # Admin tugmasi (oddiy foydalanuvchi uchun)
     admin_btn = types.InlineKeyboardMarkup()
     admin_btn.add(
-        types.InlineKeyboardButton("👤 Administrator", url=f"https://t.me/{ADMIN_IDS[0]}")
+        types.InlineKeyboardButton(
+            "👤 Administrator",
+            url=f"tg://user?id={ADMIN_CONTACT_ID}"
+        )
     )
 
     # Kanal tugmasi
     channel_btn = types.InlineKeyboardMarkup()
     channel_btn.add(
-        types.InlineKeyboardButton("📢 Kanalga o'tish", url=f"https://t.me/c/{str(CHANNEL_ID)[4:]}")
+        types.InlineKeyboardButton(
+            "📢 Kanalga o'tish",
+            url=f"https://t.me/c/{str(CHANNEL_ID)[4:]}"
+        )
     )
 
-    # 1) Obunachi emas
+    # Obunachi emas
     if not is_subscribed(user_id):
         msg = bot.send_message(
             chat_id,
@@ -344,23 +315,25 @@ def start(message):
         track_delete(chat_id, msg.message_id)
         return
 
-    # 2) Agar havola orqali kirgan bo‘lsa
+    # Agar start-link bilan kirgan bo‘lsa
     if len(args) > 1:
         code = args[1]
 
         try:
-            content_doc = contents.find_one({"_id": db.contents._ObjectId(code)})
-        except:
-            content_doc = contents.find_one({"_id": code})
+            content_doc = contents.find_one({"_id": ObjectId(code)})
+        except Exception:
+            content_doc = None
 
         if not content_doc:
             msg = bot.send_message(chat_id, "❗ Havola eskirgan yoki topilmadi.")
             track_delete(chat_id, msg.message_id)
             return
 
-        files = content_doc["files"]
-
-        sent_messages = []
+        files = content_doc.get("files", [])
+        if not files:
+            msg = bot.send_message(chat_id, "❗ Bu havolada kontent topilmadi.")
+            track_delete(chat_id, msg.message_id)
+            return
 
         for f in files:
             ftype = f["type"]
@@ -380,8 +353,9 @@ def start(message):
                 m = bot.send_animation(chat_id, fid, protect_content=True)
             elif ftype == "sticker":
                 m = bot.send_sticker(chat_id, fid)
+            else:
+                continue
 
-            sent_messages.append(m.message_id)
             track_delete_15min(chat_id, m.message_id)
 
         msg = bot.send_message(
@@ -392,7 +366,7 @@ def start(message):
         track_delete(chat_id, msg.message_id)
         return
 
-    # 3) Oddiy /start (havolasiz)
+    # Oddiy /start (havolasiz)
     msg = bot.send_message(
         chat_id,
         "✔️ Siz kanal obunachisisiz.\n"
@@ -400,3 +374,22 @@ def start(message):
         reply_markup=channel_btn
     )
     track_delete(chat_id, msg.message_id)
+
+
+# ==========================
+#   FALLBACK HANDLER
+# ==========================
+@bot.message_handler(func=lambda m: True)
+def fallback(message):
+    chat_id = message.chat.id
+    msg = bot.send_message(chat_id, "❗ Bu botda faqat /start va /admin ishlaydi.")
+    track_delete(chat_id, message.message_id)
+    track_delete(chat_id, msg.message_id)
+
+
+# ==========================
+#   FLASK RUN
+# ==========================
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
