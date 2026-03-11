@@ -117,7 +117,7 @@ def admin_panel(message):
         return
 
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    markup.add("📤 Yuklash", "❌ Yopish")
+    markup.add("📤 Yuklash", "")
 
     msg = bot.send_message(chat_id, "⚙️ Admin paneliga hush kelibsiz", reply_markup=markup)
     track_delete(chat_id, msg.message_id)
