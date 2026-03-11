@@ -43,15 +43,34 @@ def track_delete(chat_id, message_id):
     t.daemon = True
     t.start()
 
-def delete_after_15min(chat_id, message_id):
+def delete_after_15min(chat_id, message_id, code):
     time.sleep(900)
     try:
         bot.delete_message(chat_id, message_id)
     except:
         pass
 
-def track_delete_15min(chat_id, message_id):
-    t = threading.Thread(target=delete_after_15min, args=(chat_id, message_id))
+    markup = types.InlineKeyboardMarkup()
+    markup.add(
+        types.InlineKeyboardButton(
+            "♻️ Qayta tiklash ♻️",
+            url=f"https://t.me/{bot.get_me().username}?start={code}"
+        )
+    )
+
+    try:
+        msg = bot.send_message(
+            chat_id,
+            "⛔ Vaqt tugadi, barchasi o‘chirildi.\n"
+            "Agar yana yuklamoqchi bo‘lsangiz, pastdagi tugma orqali qayta yuklab oling.",
+            reply_markup=markup
+        )
+        track_delete(chat_id, msg.message_id)
+    except:
+        pass
+
+def track_delete_15min(chat_id, message_id, code):
+    t = threading.Thread(target=delete_after_15min, args=(chat_id, message_id, code))
     t.daemon = True
     t.start()
 
@@ -133,6 +152,9 @@ def upload_single(call):
     user_id = call.from_user.id
     chat_id = call.message.chat.id
 
+    if user_id not in ADMIN_IDS:
+        return
+
     admin_state[user_id] = {"mode": "single"}
 
     msg = bot.send_message(
@@ -150,6 +172,9 @@ def upload_single(call):
 def upload_multi(call):
     user_id = call.from_user.id
     chat_id = call.message.chat.id
+
+    if user_id not in ADMIN_IDS:
+        return
 
     admin_state[user_id] = {"mode": "multi", "files": []}
 
@@ -198,8 +223,8 @@ def admin_upload(message):
         })
         link_code = str(doc.inserted_id)
 
-        msg = bot.send_message(
-            chat_id,
+        msg = bot.reply_to(
+            message,
             f"🔗 Havola tayyor:\nhttps://t.me/{bot.get_me().username}?start={link_code}"
         )
         track_delete(chat_id, msg.message_id)
@@ -309,8 +334,10 @@ def start(message):
                 m = bot.send_animation(chat_id, fid, protect_content=True)
             elif ftype == "sticker":
                 m = bot.send_sticker(chat_id, fid)
+            else:
+                continue
 
-            track_delete_15min(chat_id, m.message_id)
+            track_delete_15min(chat_id, m.message_id, code)
 
         msg = bot.send_message(
             chat_id,
