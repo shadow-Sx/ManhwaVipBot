@@ -105,7 +105,7 @@ admin_state = {}
 @bot.message_handler(commands=['admin'])
 def admin_panel(message):
     if message.chat.type != "private":
-        bot.reply_to(message, "❗ Iltimos shaxsiy chatdan foydalaning.")
+        bot.reply_to(message, "<b><i>❗ Iltimos shaxsiy chatdan foydalaning.</i>\n Bot: @ManxwaBot</b>")
         return
 
     user_id = message.from_user.id
@@ -117,16 +117,16 @@ def admin_panel(message):
         return
 
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    markup.add("📤 Kontent yuklash", "❌ Yopish")
+    markup.add("📤 Yuklash", "❌ Yopish")
 
-    msg = bot.send_message(chat_id, "🔐 Admin panel", reply_markup=markup)
+    msg = bot.send_message(chat_id, "⚙️ Admin paneliga hush kelibsiz", reply_markup=markup)
     track_delete(chat_id, msg.message_id)
 
 
 # ==========================
 #   ADMIN: KONTENT YUKLASH TURINI TANLASH
 # ==========================
-@bot.message_handler(func=lambda m: m.text == "📤 Kontent yuklash")
+@bot.message_handler(func=lambda m: m.text == "📤 Yuklash")
 def choose_upload_type(message):
     user_id = message.from_user.id
     chat_id = message.chat.id
@@ -136,7 +136,7 @@ def choose_upload_type(message):
 
     markup = types.InlineKeyboardMarkup()
     markup.add(
-        types.InlineKeyboardButton("1️⃣ 1-1 havola", callback_data="upload_single"),
+        types.InlineKeyboardButton("🔗 1-1 Havola", callback_data="upload_single"),
         types.InlineKeyboardButton("♾ Cheksiz - 1 havola", callback_data="upload_multi")
     )
 
@@ -159,8 +159,8 @@ def upload_single(call):
 
     msg = bot.send_message(
         chat_id,
-        "📥 1-1 havola rejimi.\n"
-        "Kontent yuboring. Har bir kontent uchun darhol havola beriladi."
+        "<b>📥 1-1 havola nima degani ?.\n"
+        "Manhwa yoki Manga yuboring. Har bir Manga/Manhwa uchun darhol havola beriladi.</b>"
     )
     track_delete(chat_id, msg.message_id)
 
@@ -180,9 +180,9 @@ def upload_multi(call):
 
     msg = bot.send_message(
         chat_id,
-        "📥 Cheksiz rejim.\n"
-        "Bir nechta kontent yuboring.\n"
-        "Tugash uchun /stop yuboring."
+        "<b>📥 Cheksiz bu nima degani?.\n"
+        "Bir qancha Manga/Manhwa yuboring.\n"
+        "Tugagach esa /stop yuboring.</b>"
     )
     track_delete(chat_id, msg.message_id)
 
@@ -225,7 +225,7 @@ def admin_upload(message):
 
         msg = bot.reply_to(
             message,
-            f"🔗 Havola tayyor:\nhttps://t.me/{bot.get_me().username}?start={link_code}"
+            f"<b>🔗 Havola:</b> \n<code>https://t.me/{bot.get_me().username}?start={link_code}</code>"
         )
         track_delete(chat_id, msg.message_id)
 
@@ -234,7 +234,7 @@ def admin_upload(message):
             "type": file_type,
             "file_id": file_id
         })
-        msg = bot.send_message(chat_id, "📌 Qabul qilindi.")
+        msg = bot.send_message(chat_id, "<b>📌 Qabul qilindi. /stop orqali tugatishingiz mumkun</b>")
         track_delete(chat_id, msg.message_id)
 
 
@@ -250,7 +250,7 @@ def stop_upload(message):
         return
 
     if user_id not in admin_state or admin_state[user_id]["mode"] != "multi":
-        msg = bot.send_message(chat_id, "❗ Siz cheksiz rejimda emassiz.")
+        msg = bot.send_message(chat_id, "❗ Siz cheksiz havola rejimda emassiz.")
         track_delete(chat_id, msg.message_id)
         return
 
@@ -264,7 +264,7 @@ def stop_upload(message):
 
     msg = bot.send_message(
         chat_id,
-        f"🔗 Cheksiz havola tayyor:\nhttps://t.me/{bot.get_me().username}?start={link_code}"
+        f"🔗 Havola:\n<code>https://t.me/{bot.get_me().username}?start={link_code}</code>"
     )
     track_delete(chat_id, msg.message_id)
 
@@ -276,7 +276,7 @@ def stop_upload(message):
 @bot.message_handler(commands=['start'])
 def start(message):
     if message.chat.type != "private":
-        bot.reply_to(message, "❗ Iltimos shaxsiy chatdan foydalaning.")
+        bot.reply_to(message, "<b>❗ Iltimos shaxsiy chatdan foydalaning.</b>")
         return
 
     user_id = message.from_user.id
@@ -296,8 +296,8 @@ def start(message):
     if not is_subscribed(user_id):
         msg = bot.send_message(
             chat_id,
-            "❗ Ushbu bot faqat bitta kanal uchun ishlaydi.\n"
-            "Agar qo‘shilmoqchi bo‘lsangiz, adminga yozing.",
+            "<B>❗ Ushbu bot faqat @AniManxwa <i>💎VIP</i> Kanali uchun maxsus yaratilgan</b>\n"
+            "<b>Agar siz ham qo‘shilmoqchi bo‘lsangiz pastdagi tugma orqali Adminga murojat qiling</b>",
             reply_markup=admin_btn
         )
         track_delete(chat_id, msg.message_id)
@@ -312,7 +312,7 @@ def start(message):
             content_doc = None
 
         if not content_doc:
-            msg = bot.send_message(chat_id, "❗ Havola eskirgan yoki topilmadi.")
+            msg = bot.send_message(chat_id, "<b>❗ Siz kelgan havolada hatolik bor!</b>")
             track_delete(chat_id, msg.message_id)
             return
 
@@ -341,15 +341,15 @@ def start(message):
 
         msg = bot.send_message(
             chat_id,
-            "✔️ Kontent yuborildi.\n⏳ 15 daqiqadan so‘ng o‘chiriladi."
+            "Barchasi 15-daqiqadan so'ng ochiriladi"
         )
         track_delete(chat_id, msg.message_id)
         return
 
     msg = bot.send_message(
         chat_id,
-        "✔️ Siz allaqachon kanal obunachisisiz.\n"
-        "Pastdagi tugma orqali kanalga o‘ting.",
+        "<b>✔️ Siz allaqachon <i>💎VIP</i> Kanalimiz azosi hisblanasiz</b>.\n"
+        "<i>Pastdagi tugma orqali Obunangizni tekshiring.</i>",
         reply_markup=channel_btn
     )
     track_delete(chat_id, msg.message_id)
@@ -363,7 +363,7 @@ def fallback(message):
     if message.chat.type != "private":
         return
     chat_id = message.chat.id
-    msg = bot.send_message(chat_id, "❗ Bu botda faqat /start va /admin ishlaydi.")
+    msg = bot.send_message(chat_id, "")
     track_delete(chat_id, message.message_id)
     track_delete(chat_id, msg.message_id)
 
