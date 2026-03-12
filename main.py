@@ -290,7 +290,7 @@ def start(message):
 
     channel_btn = types.InlineKeyboardMarkup()
     channel_btn.add(
-        types.InlineKeyboardButton("📢 Kanalga o'tish", url=f"https://t.me/c/{str(CHANNEL_ID)[4:]}")
+        types.InlineKeyboardButton("📢 Kanalga o'tish", url=f"https://t.me/c/{str(CHANNEL_ID)[4:]}/119")
     )
 
     if not is_subscribed(user_id):
