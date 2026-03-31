@@ -53,7 +53,7 @@ def delete_after_15min(chat_id, message_id, code):
     markup = types.InlineKeyboardMarkup()
     markup.add(
         types.InlineKeyboardButton(
-            "♻️ Qayta tiklash ♻️",
+            "♻️ Qayta Yuklash ♻️",
             url=f"https://t.me/{bot.get_me().username}?start={code}"
         )
     )
@@ -61,8 +61,8 @@ def delete_after_15min(chat_id, message_id, code):
     try:
         msg = bot.send_message(
             chat_id,
-            "⛔ Vaqt tugadi, barchasi o‘chirildi.\n"
-            "Agar yana yuklamoqchi bo‘lsangiz, pastdagi tugma orqali qayta yuklab oling.",
+            "<b>⛔ Vaqt tugadi, habar o‘chirildi.</b>\n\n"
+            "<i>Agar yana yuklamoqchi bo‘lsangiz, pastdagi tugma orqali qayta yuklab oling.</i>",
             reply_markup=markup
         )
         track_delete(chat_id, msg.message_id)
@@ -112,7 +112,7 @@ def admin_panel(message):
     chat_id = message.chat.id
 
     if user_id not in ADMIN_IDS:
-        msg = bot.send_message(chat_id, "❗ Siz admin emassiz.")
+        msg = bot.send_message(chat_id, "")
         track_delete(chat_id, msg.message_id)
         return
 
@@ -296,7 +296,7 @@ def start(message):
     if not is_subscribed(user_id):
         msg = bot.send_message(
             chat_id,
-            "<B>❗ Ushbu bot faqat @AniManxwa <i>💎VIP</i> Kanali uchun maxsus yaratilgan</b>\n"
+            "<B>❗ Ushbu bot <i>💎VIP</i> Kanal uchun maxsus yaratilgan</b>\n\n"
             "<b>Agar siz ham qo‘shilmoqchi bo‘lsangiz pastdagi tugma orqali Adminga murojat qiling</b>",
             reply_markup=admin_btn
         )
@@ -348,7 +348,7 @@ def start(message):
 
     msg = bot.send_message(
         chat_id,
-        "<b>✔️ Siz allaqachon <i>💎VIP</i> Kanalimiz azosi hisblanasiz</b>.\n"
+        "<b>🔰 Siz allaqachon <i>💎VIP</i> Kanalimiz azosi hisblanasiz</b>.\n\n"
         "<i>Pastdagi tugma orqali Obunangizni tekshiring.</i>",
         reply_markup=channel_btn
     )
