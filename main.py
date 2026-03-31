@@ -341,7 +341,7 @@ def start(message):
 
         msg = bot.send_message(
             chat_id,
-            "Barchasi 15-daqiqadan so'ng ochiriladi"
+            "Tezda yuklab oling biz bu habarni 15-daqiqadan so'ng ochiramiz"
         )
         track_delete(chat_id, msg.message_id)
         return
