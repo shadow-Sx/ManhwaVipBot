@@ -341,7 +341,7 @@ def start(message):
 
         msg = bot.send_message(
             chat_id,
-            "Tezda yuklab oling biz bu habarni 15-daqiqadan so'ng ochiramiz"
+            "Tezda yuklab oling men bu habarni 15-daqiqadan so'ng ochiraman"
         )
         track_delete(chat_id, msg.message_id)
         return
@@ -349,7 +349,7 @@ def start(message):
     msg = bot.send_message(
         chat_id,
         "<b>🔰 Siz allaqachon <i>💎VIP</i> Kanalimiz azosi hisblanasiz</b>.\n\n"
-        "<i>Pastdagi tugma orqali Obunangizni tekshiring.</i>",
+        "<i>Pastdagi tugma orqali Bizda bor barcha narsani ko'rishingiz mumkun!</i>",
         reply_markup=channel_btn
     )
     track_delete(chat_id, msg.message_id)
